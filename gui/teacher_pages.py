@@ -1,8 +1,10 @@
+"""gui/teacher_pages.py: Music School Management System module."""
 import streamlit as st
 from gui.common import choose, action
 
 
 def show_teacher_management_page(manager):
+    """Render teacher search, creation, updates and safe removal."""
     st.header('Teacher Management')
     term = st.text_input('Find teachers by name or speciality')
     rows = [t.__dict__ for t in manager.find_teachers(term)]

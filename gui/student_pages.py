@@ -1,8 +1,14 @@
+"""gui/student_pages.py: Music School Management System module."""
 import streamlit as st
 from gui.common import choose, action
 
 
 def show_student_management_page(manager):
+    # Reset widget values before recreating the form, only after a successful save.
+    """Render student search, registration and cumulative management operations."""
+    if st.session_state.pop('registration_saved', False):
+        st.session_state['register_name'] = ''
+        st.session_state['register_instrument'] = ''
     st.header('Student Management')
     term = st.text_input('Find students by name')
     students = manager.find_students(term)
@@ -14,10 +20,10 @@ def show_student_management_page(manager):
     with st.expander('Register student and first instrument', expanded=True):
         st.caption('Registration selects the first available course for the instrument. Use Enrol or Switch to choose another course.')
         with st.form('register'):
-            name = st.text_input('Student name')
-            instrument = st.text_input('First instrument')
+            name = st.text_input('Student name', key='register_name')
+            instrument = st.text_input('First instrument', key='register_instrument')
             if st.form_submit_button('Register Student'):
-                action(manager.register_new_student, name, instrument)
+                action(manager.register_new_student, name, instrument, success_flag='registration_saved')
     with st.expander('Add student without enrolment'):
         with st.form('add_student'):
             name = st.text_input('Name')
