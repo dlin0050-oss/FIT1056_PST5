@@ -1,10 +1,10 @@
-# Music School Management System — PST4
+# Music School Management System — PST5
 
-A cumulative FIT1056 application built from the student's PST1, PST2 and PST3 code. PST4 replaces the console interface with Streamlit while retaining earlier workflows.
+This cumulative FIT1056 project upgrades the submitted PST4 application with finance, administration and automated quality checks. Earlier student, teacher, course, enrolment, search, student card and attendance features remain available.
 
-## Setup and run (Windows)
+## Run on Windows
 
-Open the PST4 folder in VS Code, then use its terminal:
+Open the project folder in VS Code and run these commands in its terminal:
 
 ```powershell
 py -m venv .venv
@@ -12,79 +12,86 @@ py -m venv .venv
 .\.venv\Scripts\python.exe -m streamlit run main.py
 ```
 
-Open the local address printed in the terminal. Stop the application with Ctrl+C. Run the final command again to restart. On macOS/Linux, use `python3 -m venv .venv` and `.venv/bin/python` in place of the Windows Python path.
+Open the Local URL printed by Streamlit. Stop with Ctrl+C. On macOS/Linux, create the environment with `python3 -m venv .venv` and substitute `.venv/bin/python` for the Windows Python path.
 
-## Cumulative features
+## Automated tests
 
-| Stage | Features retained in PST4 |
-| --- | --- |
-| PST1 | Student registration, enrolment, student/teacher search and lists, teacher creation, automatic IDs |
-| PST2 | JSON persistence, student and teacher updates/removal, attendance, downloadable text student cards |
-| PST3 | User inheritance, StudentUser/TeacherUser/Course models, ScheduleManager, daily lesson roster and course transfers |
-| PST4 | Streamlit sidebar navigation, forms, tables, feedback, session-state manager; teacher and course pages expose earlier functionality |
-
-## Project structure
-
-- `main.py`: launches the GUI only.
-- `app/user.py`, `app/student.py`, `app/teacher.py`: retained PST3 models.
-- `app/schedule.py`: business rules, lookups, registration, IDs, enrolment, transfers, attendance and JSON persistence.
-- `gui/main_dashboard.py`: Fragment 4.1 dashboard and persistent session manager.
-- `gui/student_pages.py`: Fragment 4.2 registration, search, lists, editing, removal, enrolment, transfers and ID cards.
-- `gui/roster_pages.py`: Fragment 4.3 weekday roster and check-in.
-- `gui/teacher_pages.py`, `gui/course_pages.py`: cumulative management features.
-- `gui/common.py`: shared record selectors and action feedback.
-- `data/msms.json`: original PST3 records, including historical attendance.
-
-## Design choices and assumptions
-
-The GUI calls ScheduleManager methods rather than implementing business rules. The manager persists across Streamlit reruns using session state. Changes save immediately to JSON; the data path is based on the project location. ID counters persist and are checked against the highest existing ID at load time. Deleted IDs are not reused.
-
-Student enrolments are the source of truth when older course membership lists disagree. Loading rebuilds the course student lists; the next successful change saves the consistent lists. Existing historical attendance is retained, even when a student's current enrolments differ.
-
-Instrument registration uses the first matching course with an existing teacher. When no matching course exists, registration fails without creating a student. Users can also add an unenrolled student and select a specific course using Enrol. Names need not be unique: selectors include IDs. Search is case-insensitive; an empty search lists all records.
-
-Course transfers update both membership lists. Check-in requires an existing student, existing course and enrolment. Attendance is course-level with a current timestamp; it is not restricted to the displayed weekday or a specific lesson. Repeated check-ins are permitted.
-
-Removing students removes their current enrolments but retains historical attendance. Teachers with assigned courses cannot be removed. Teacher speciality must match their courses. Lesson conflict validation checks identical start times for the same room or teacher; lesson duration and overlapping intervals are not modelled. Payments is a placeholder, as in the supplied PST4 template.
-
-This prototype is intended for one receptionist using a local JSON file. Concurrent browser sessions do not coordinate edits. Invalid JSON is displayed as a load error and is not silently overwritten. Automated testing and further hardening are future PST5 work.
-
-## Manual checks
-
-Use a copy of the data file for testing, or restore a backup afterwards.
-
-1. Open every sidebar page. Check students, teachers, courses and attendance display correctly.
-2. Search `alice`, then search `PIANO` on Teacher Management. Clear the search to see all records.
-3. Register a student with Piano. Verify the new student has ID 3 and is enrolled in Beginner Piano. A blank name or unavailable instrument should show an error without adding a student.
-4. Add a Violin teacher (ID 3), then a Violin course (ID 104). Add a lesson and view its weekday roster.
-5. Enrol the new student in Violin. Switch their Piano course from Beginner to Intermediate. Check both student and course tables.
-6. Check in an enrolled student. Try checking Bob into a Piano course: reject it and leave attendance unchanged.
-7. Edit names, download a student card, remove a test student and an unassigned teacher. Reject removing a teacher with assigned courses.
-8. Stop and restart. Check saved changes remain. Create another record and verify its ID is higher, including after deletion.
-9. Move between pages after creating a record; confirm the same manager and data remain available.
-10. Verify empty student/teacher/course data produces helpful messages rather than empty-selector errors.
-
-## Git workflow
-
-Use your existing repository and the `individual` branch. Preserve existing history. Review and commit working increments; do not fabricate old commits.
-
-Suggested commit sequence:
-
-1. `fix(core): restore cumulative features and persistent IDs`
-2. `feat(gui): add dashboard and session manager`
-3. `feat(students): add student management interface`
-4. `feat(roster): add daily schedule and check-in interface`
-5. `feat(management): expose teacher and course workflows`
-6. `docs: document cumulative features and manual checks`
-
-After running and checking the application:
+Run from the project root:
 
 ```powershell
-git status
-git branch --show-current
-git add app gui main.py requirements.txt README.md .gitignore data/msms.json
-git commit -m "feat(pst4): complete cumulative Streamlit application"
-git push origin individual
+.\.venv\Scripts\python.exe -m pytest -q
 ```
 
-The delivered ZIP contains source and data, without `.git`, virtual environments or caches. Copy its files into your existing working repository before committing. Pushing and Moodle submission must be completed separately.
+`pytest.ini` configures discovery and the import path. Tests use pytest's `tmp_path`, so they never change `data/msms.json`. Backend tests cover course creation, payments, histories, CSV headers/content, invalid input, enrolment/day filters, persistent IDs, failed-save rollback, cancellation logging, backups and corrupt JSON. Streamlit AppTest checks form reset, dependent selectors, payment/history interaction and empty pages. These tests follow Arrange, Act, Assert; fixtures arrange reusable school records.
+
+## Changes requested in PST4 feedback
+
+- Registration fields clear only after a successful save. Failed registration preserves input for correction.
+- Selecting a weekday shows only lessons scheduled for that day.
+- Check-in students are restricted to those enrolled in a course running that day.
+- After selecting a student, only that student's enrolled courses running that day are offered.
+- Dependent dropdowns sit outside forms so they update immediately when their parent choice changes. IDs distinguish people with identical names.
+- Source modules and functions have documentation; comments explain state resets, validation, persistence and backup timing.
+
+## PST5 requirements and implementation
+
+| Part | Implementation |
+| --- | --- |
+| 5.1 Finance and reporting | `finance_log` is loaded/saved; `record_payment`, `get_payment_history`, `export_report` are methods of ScheduleManager |
+| 5.2 Finance GUI | `show_finance_page` replaces Payments (stub); payment form, student history, CSV downloads |
+| 5.3 Admin utilities | `init_logger(log_file)` and `backup_data(data_path, backup_dir)` in `app/admin_utils.py` |
+| Lifecycle integration (labelled 5.4 in the PDF) | `main.py` sets logging and attempts one startup backup per browser session before launching the dashboard; registration, payment and cancellation events are logged |
+| Automated tests (also labelled 5.4 in the PDF) | Backend pytest tests and Streamlit interaction tests in `tests/` |
+
+The original template's `create_course` name is provided as an alias for the existing `add_course` method. Tests create a teacher first; courses cannot refer to nonexistent teachers. Lesson cancellation is accessible through Course Management and logged with a reason.
+
+## Files
+
+- `main.py`: logging, startup backup and GUI entry point.
+- `app/user.py`, `app/student.py`, `app/teacher.py`: retained OOP models.
+- `app/schedule.py`: validation, school operations, JSON persistence, finance, reports and cancellation.
+- `app/admin_utils.py`: idempotent file logging and timestamped backups.
+- `gui/main_dashboard.py`: navigation and session-state manager.
+- `gui/student_pages.py`: student search, registration, updates, removal, enrolment, transfer and cards.
+- `gui/teacher_pages.py`: teacher search and management.
+- `gui/course_pages.py`: courses, scheduling and cancellation.
+- `gui/roster_pages.py`: weekday roster and filtered check-in.
+- `gui/finance_pages.py`: payments, history, report downloads and Backup Now.
+- `gui/common.py`: ID-backed selectors and shared operation feedback.
+- `data/msms.json`: submitted PST4 data; existing attendance is retained.
+- `tests/`: isolated backend and GUI tests.
+
+## Data, validation and limitations
+
+The manager lives in Streamlit session state across interactions. JSON persists between restarts. Automatic student, teacher, course and lesson counters are restored and saved; deleted IDs are not reused. Older PST4 data without finance/counter fields loads with safe defaults. New finance/counter fields are written on the next successful mutation.
+
+Student enrolments are authoritative when legacy course lists disagree; course membership lists are rebuilt on loading. Historical attendance is preserved. Registration uses the first course matching the instrument; alternatively add an unenrolled student and enrol them in an explicitly selected course. Search is case-insensitive and supports partial names; an empty search lists all records.
+
+Payments are local records only, not real card processing. Amounts must be numeric, finite and positive; values round to two decimal places. Payment method is required. Deleted students' payment and attendance records are retained for reports. The history GUI selects current students; retained historical IDs remain available through the manager API and CSV exports.
+
+Invalid operations raise readable errors. JSON writes use a temporary file and atomic replacement. A decorator snapshots manager state and restores it when a mutation fails, including a disk save failure. Malformed JSON is not silently replaced; correct or restore the file before restarting. Validation covers expected record structure but does not guarantee recovery from every conceivable manually corrupted value.
+
+Attendance uses the current timestamp and validates the selected weekday's schedule, not the actual calendar date. Selecting Monday means the recurring Monday timetable. The optional `day` argument preserves older callers; the GUI always supplies it. Duplicate check-ins remain allowed. Lesson cancellation removes the scheduled lesson; logs retain its reason. Room/teacher conflict checks compare identical start times only because lesson durations are not modelled.
+
+Logs are generated at `logs/msms.log`. Backups are generated in `data/backups/` with microsecond timestamps. Backups occur once per browser session rather than on every Streamlit rerun; Backup Now provides an extra manual copy. If startup backup fails, a warning appears and the app remains usable. Logging handlers are not duplicated on reruns. Backups and logs are excluded from Git and the deliverable ZIP. To restore, stop the app, keep a copy of the current data, copy the chosen backup over `data/msms.json`, then restart.
+
+This local JSON prototype is for one receptionist. Concurrent sessions do not coordinate edits. Logging/backup and automated tests improve reliability; they do not make arbitrary OS or hardware failures impossible.
+
+## Manual verification
+
+1. Register a Piano student. Confirm the record appears and the two registration fields clear. Try an unavailable instrument and confirm the input remains with an error.
+2. In Daily Roster select Tuesday. Only Tuesday lessons should appear; only students enrolled in those courses should be offered. Select another student or weekday and check the course list updates. An empty day should show a message instead of a check-in button.
+3. Record a payment under Payments. Select the student and click View History. Download finance and attendance CSVs and open them.
+4. Use Backup Now and verify a new backup exists. Check `logs/msms.log` for registration/payment/backup entries.
+5. Add and cancel a lesson with a reason. Confirm it disappears from that day's roster and a cancellation event appears in the log.
+6. Restart and confirm records persist. Run the automated test command.
+
+## Git and submission
+
+Use branch `individual` and preserve previous commits. For a separate PST5 folder, copy the existing working repository including its `.git`, then copy the upgraded source files into it. Do not copy an old virtual environment to a renamed folder; create a new `.venv` using the commands above.
+
+The delivered code is already complete. Commit current changes honestly in coherent groups; do not backdate commits. For future work, complete and test each fragment before committing. The ZIP includes `GIT_STEPS.md` with the checkpoint command messages read from the supplied PDF, plus commands for the feedback fixes and extra files. Review `git status` and existing commits before using them, especially if you have already committed anything.
+
+Set the remote to the intended PST5 repository before pushing; copying PST4's repository preserves its old remote until you change it. Check `git remote -v`, then `git push -u origin individual` once the destination is correct. Do not force-push to work around a rejection.
+
+Package source, `data`, tests, requirements, configuration and documentation. Exclude `.git`, `.venv`, `__pycache__`, `.pytest_cache`, logs and backups. A ZIP can be generated from committed tracked files with `git archive --format=zip --output=../PST5_Submission.zip HEAD` after reviewing tracked files and committing the intended data. Upload the final ZIP to Moodle and complete its submit step separately from Git push.
