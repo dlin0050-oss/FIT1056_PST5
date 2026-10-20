@@ -3,3 +3,8 @@ __pycache__/
 *.pyc
 *.tmp
 .streamlit/
+
+logs/
+*.log
+data/backups/
+.pytest_cache/
